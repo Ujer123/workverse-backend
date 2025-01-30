@@ -12,7 +12,23 @@ const app = express();
 const server = http.createServer(app);
 const io = setupSocket(server);
 
-app.use(cors({ origin: "https://workverse-frontend.netlify.app", credentials: true}));
+const allowedOrigins = [
+  "https://workverse-frontend.netlify.app",
+  "http://localhost:3000", // Or whatever port your frontend is running on
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) { // Handle requests with no origin (like Postman)
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Important for cookies/sessions
+  })
+);
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);

@@ -73,13 +73,56 @@ const shareNote = async (req, res) => {
       note.sharedWith.push(recipient._id);
       await note.save();
   
-      res.status(200).json({ message: 'Note shared successfully', note });
+      // Populate the sharedWith field with user details (name or email)
+      const updatedNote = await Note.findById(noteId).populate('sharedWith', 'name email');
+  
+      res.status(200).json({ message: 'Note shared successfully', note: updatedNote });
     } catch (error) {
       console.error('Error in shareNote:', error); // Log errors
       res.status(500).json({ error: 'An unexpected error occurred' });
     }
   };
+
+  const removeCollaborator = async (req, res) => {
+    try {
+      const { noteId, recipientEmail } = req.params;
+      const userId = req.user.id;
+  
+      console.log('Note ID:', noteId);
+      console.log('Recipient Email:', recipientEmail);
+      console.log('Authenticated User ID:', userId);
+  
+      const note = await Note.findOne({ _id: noteId, owner: userId });
+      if (!note) {
+        console.log('Note not found or user is not the owner');
+        return res.status(404).json({ error: 'Note not found or access denied' });
+      }
+  
+      const userToRemove = await User.findOne({ email: recipientEmail });
+      if (!userToRemove) {
+        console.log('User to remove not found');
+        return res.status(404).json({ error: 'User to remove not found' });
+      }
+  
+      note.sharedWith = note.sharedWith.filter(
+        sharedUserId => sharedUserId.toString() !== userToRemove._id.toString()
+      );
+      await note.save();
+  
+      const updatedNote = await Note.findById(noteId).populate(
+        'sharedWith',
+        'name email'
+      );
+  
+      res.status(200).json({ message: 'Collaborator removed', note: updatedNote });
+    } catch (error) {
+      console.error('Error removing collaborator:', error);
+      res.status(500).json({ error: 'An unexpected error occurred' });
+    }
+  };
+  
+  
   
   
 
-module.exports = { createNote, getNotes, updateNote, deleteNote, shareNote };
+module.exports = { createNote, getNotes, updateNote, deleteNote, shareNote, removeCollaborator };
