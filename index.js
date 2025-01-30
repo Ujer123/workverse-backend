@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = setupSocket(server);
 
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: "https://workverse-backend.onrender.com", credentials: true }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
