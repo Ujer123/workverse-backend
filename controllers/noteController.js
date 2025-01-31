@@ -40,8 +40,8 @@ const getNotes = async (req, res) => {
         { 'sharedWith.user': userId }
       ]
     })
-    .populate('owner', 'name email')
-    .populate('sharedWith.user', 'name email');
+    .populate('owner', '_id email')
+    .populate('sharedWith.user', '_id email');
 
     res.status(200).json(notes);
   } catch (error) {
@@ -135,7 +135,8 @@ const shareNote = async (req, res) => {
 };
 
 const removeCollaborator = async (req, res) => {
-  const { noteId, email } = req.body;
+  const { email } = req.body;
+  const { noteId } = req.params;
 
   try {
     const note = await Note.findOne({
