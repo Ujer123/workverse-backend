@@ -133,23 +133,30 @@ const shareNote = async (req, res) => {
 };
 
 const removeCollaborator = async (req, res) => {
-  const { email } = req.body;
   const { noteId } = req.params;
+  const { email } = req.body;
 
   try {
     const note = await Note.findOne({
       _id: noteId,
       owner: req.user.id
-    });
+    }).populate('sharedWith.user');
 
     if (!note) return res.status(404).json({ error: 'Note not found or unauthorized' });
+
 
     const collaborator = await User.findOne({ email });
     if (!collaborator) return res.status(404).json({ error: 'User not found' });
 
+    console.log('Removing collaborator:', {
+      noteId: noteId,
+      collaboratorEmail: email,
+      collaboratorId: collaborator._id
+    });
+
     // Remove collaborator
     note.sharedWith = note.sharedWith.filter(sw => 
-      sw.user.toString() !== collaborator._id.toString()
+      sw.user._id.toString() !== collaborator._id.toString()
     );
 
     await note.save();

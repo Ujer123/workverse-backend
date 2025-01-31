@@ -10,7 +10,7 @@ router.get('/', getNotes);
 router.put('/:id', updateNote);
 router.delete('/:id', deleteNote);
 router.post('/share', shareNote);
-router.delete("/notes/:noteId/remove-collaborator", removeCollaborator); 
+router.delete("/:noteId/remove-collaborator", removeCollaborator); 
   
   
 
