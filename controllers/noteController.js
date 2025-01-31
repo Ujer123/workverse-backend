@@ -62,6 +62,7 @@ const updateNote = async (req, res) => {
     );
 
     if (!note) return res.status(404).json({ error: 'Note not found or insufficient permissions' });
+    // req.app.get('io').to(note._id.toString()).emit('note-updated', note);
     res.status(200).json(note);
   } catch (error) {
     res.status(400).json({ error: error.message });
