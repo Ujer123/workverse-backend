@@ -14,7 +14,7 @@ const noteSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
       },
-      canEdit: { type: Boolean, default: false },  
+      canEdit: { type: Boolean, default: true }
     }],
     createdAt: { type: Date, default: Date.now },
   },

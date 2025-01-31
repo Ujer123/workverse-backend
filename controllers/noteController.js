@@ -55,10 +55,7 @@ const updateNote = async (req, res) => {
     const note = await Note.findOneAndUpdate(
       { 
         _id: req.params.id,
-        $or: [
-          { owner: req.user.id },
-          { 'sharedWith.user': req.user.id, 'sharedWith.canEdit': true }
-        ]
+        
       },
       req.body,
       { new: true }
