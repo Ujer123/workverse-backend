@@ -1,4 +1,7 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User'); // Add this import
+const Note = require('../models/Note'); // Add this import
 
 const setupSocket = (server) => {
   const io = new Server(server, {
@@ -12,39 +15,82 @@ const setupSocket = (server) => {
     }
   });
 
+  // Add authentication middleware
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+      if (!token) return next(new Error('Authentication required'));
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.userId);
+      if (!user) return next(new Error('User not found'));
+
+      // Attach user information to the socket
+      socket.userId = user._id;
+      socket.userEmail = user.email;
+      socket.userName = user.name;
+      
+      next();
+    } catch (err) {
+      next(new Error('Authentication failed'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log('User connected', socket.id);
+    console.log('User connected', socket.id, 'User ID:', socket.userId);
 
-    // When user joins their room, emit user info
-    socket.on('join-user', async (userId) => {
+    // Modified join-user handler
+    socket.on('join-user', async () => {
       try {
-        // Fetch user information from the database (e.g., MongoDB)
-        const user = await User.findById(userId);
-
-        if (user) {
-          console.log(`User ${user.name} (${user.email}) joined their room`); // Replace with actual user properties
-
-          // Emit the user's info to the socket
-          socket.emit('user-info', { name: user.name, email: user.email });
-        } else {
-          console.log(`User with ID ${userId} not found`);
-        }
-
-        // Join user-specific room
-        socket.join(userId);
+        console.log(`User ${socket.userName} (${socket.userEmail}) joined their room`);
+        
+        // Join user-specific room using their ID
+        socket.join(socket.userId);
+        
+        // Emit user info
+        socket.emit('user-info', { 
+          name: socket.userName, 
+          email: socket.userEmail 
+        });
       } catch (err) {
-        console.error("Error fetching user data:", err);
+        console.error("Error in join-user:", err);
       }
     });
 
-
-    // Handle note updates from clients
+    // Improved note update handler
     socket.on('update-note', async ({ noteId, updatedContent }) => {
       try {
-        // Broadcast update to all users who have access to the note
-        io.to(noteId).emit('note-updated', { noteId, updatedContent });
+        // Verify note access
+        const note = await Note.findOne({
+          _id: noteId,
+          collaborators: socket.userId
+        });
+
+        if (!note) {
+          return socket.emit('update-error', 'Note not found or no permission');
+        }
+
+        // Update the note
+        const updatedNote = await Note.findByIdAndUpdate(
+          noteId,
+          { content: updatedContent, updatedAt: new Date() },
+          { new: true }
+        );
+
+        // Broadcast with editor info
+        io.to(noteId).emit('note-updated', {
+          noteId,
+          updatedContent: updatedNote.content,
+          editor: {
+            name: socket.userName,
+            email: socket.userEmail,
+            timestamp: new Date()
+          }
+        });
+
       } catch (err) {
-        console.error('Socket update error:', err);
+        console.error('Update error:', err);
+        socket.emit('update-error', 'Failed to update note');
       }
     });
 
