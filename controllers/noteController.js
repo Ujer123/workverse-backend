@@ -52,6 +52,7 @@ const getNotes = async (req, res) => {
 
 const updateNote = async (req, res) => {
   try {
+
     const note = await Note.findOneAndUpdate(
       { 
         _id: req.params.id,
